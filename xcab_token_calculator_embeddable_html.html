@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XCAB Token – Interaktiver Rechner</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#101a2e; --muted:#7f8aa3; --text:#e7ecf7; --accent:#4aa3ff; --ok:#3bd671; --warn:#ffce3a; --bad:#ff6771;
+      --border: #1f2a43;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; background:var(--bg); color:var(--text)}
+    header{padding:18px 20px; border-bottom:1px solid var(--border); background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0));}
+    h1{font-size:20px; margin:0 0 6px}
+    p.sub{margin:0; color:var(--muted)}
+
+    .container{padding:20px; display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));}
+    .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow: 0 10px 20px rgba(0,0,0,0.25)}
+    .card h2{font-size:16px; margin:0 0 12px}
+
+    .row{display:grid; grid-template-columns: 1fr 120px; gap:8px; align-items:center; margin:6px 0}
+    .row label{color:var(--muted)}
+    .row input, .row select{width:100%; padding:8px 10px; border:1px solid var(--border); background:#0d1628; color:var(--text); border-radius:10px}
+    .row input[type=range]{padding:0}
+
+    .kpi{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:10px}
+    .kpi .box{border:1px dashed var(--border); border-radius:12px; padding:10px}
+    .kpi .label{font-size:12px; color:var(--muted)}
+    .kpi .value{font-weight:700; font-size:16px;}
+
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#0d1628; border:1px solid var(--border); color:var(--muted); font-size:12px}
+
+    .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+
+    canvas{width:100%; height:220px; background:#0d1628; border:1px solid var(--border); border-radius:12px}
+
+    .warning{background: #2e1d05; color:#ffcd56; border:1px solid #3b2a0e; padding:10px; border-radius:12px; margin-top:8px}
+    .ok{color:var(--ok)} .bad{color:var(--bad)} .muted{color:var(--muted)}
+
+    .footer{padding:8px 20px 20px; color:var(--muted)}
+    button{background:var(--accent); color:#04111f; border:none; border-radius:12px; padding:10px 12px; font-weight:700; cursor:pointer}
+    .btn-row{display:flex; gap:8px; flex-wrap:wrap}
+    code.small{font-size:12px; color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>XCAB Token – Interaktiver Rechner</h1>
+    <p class="sub">Selbständiges HTML/JS Widget – zum Einbetten in Outline (HTML-Block) oder via &lt;iframe&gt;.</p>
+  </header>
+
+  <div class="container">
+
+    <!-- RIX Pricing -->
+    <section class="card" id="rixCard">
+      <h2>RIX Pricing</h2>
+      <div class="row"><label for="twap">TWAP (1h) €</label><input id="twap" type="number" step="0.0001" value="1.00"></div>
+      <div class="row"><label for="haircut">Haircut %</label><input id="haircut" type="range" min="0" max="50" step="0.5" value="10" oninput="document.getElementById('haircutOut').textContent=this.value+'%'"><span id="haircutOut" class="pill" style="grid-column:1 / -1;">10%</span></div>
+      <div class="row"><label for="vwap">VWAP (24h) €</label><input id="vwap" type="number" step="0.0001" value="0.95"></div>
+      <div class="kpi">
+        <div class="box"><div class="label">Abgesicherter 1h-Preis</div><div class="value" id="discTwapOut">–</div></div>
+        <div class="box"><div class="label">RIX (min)</div><div class="value" id="rixOut">–</div></div>
+      </div>
+      <div class="kpi">
+        <div class="box"><div class="label">RIX−VWAP Abweichung</div><div class="value" id="rixDevOut">–</div></div>
+        <div class="box"><div class="label">Letzte Aktualisierung</div><div class="value" id="nowOut">–</div></div>
+      </div>
+      <div class="btn-row" style="margin-top:10px"><button id="resetRix">RIX Defaults</button></div>
+    </section>
+
+    <!-- Ride / Voucher calculator -->
+    <section class="card">
+      <h2>Fahrt bezahlen (Voucher-Logik)</h2>
+      <div class="row"><label for="fare">Fahrtpreis €</label><input id="fare" type="number" step="0.01" value="15"></div>
+      <div class="row"><label for="voucherDiscount">XCAB-Rabatt %</label><input id="voucherDiscount" type="range" min="0" max="30" step="0.5" value="5" oninput="document.getElementById('voucherOut').textContent=this.value+'%'"><span id="voucherOut" class="pill" style="grid-column:1 / -1;">5%</span></div>
+      <div class="row"><label for="maxDiscount">Max. Rabatt €</label><input id="maxDiscount" type="number" step="0.01" value="2"></div>
+      <div class="kpi">
+        <div class="box"><div class="label">Effektiver Fahrpreis</div><div class="value" id="effFareOut">–</div></div>
+        <div class="box"><div class="label">Benötigte Tokens</div><div class="value" id="tokensOut">–</div></div>
+      </div>
+      <div class="muted" style="margin-top:6px"><code class="small">Formeln: Rabatt = min(Fahrtpreis × Rabatt%, Max-Rabatt). Tokens = Effektiver Fahrpreis ÷ RIX.</code></div>
+    </section>
+
+    <!-- PSD2 LNE -->
+    <section class="card">
+      <h2>PSD2 – LNE-Prüfung</h2>
+      <div class="row"><label for="psd2Limit">Limit € (L)</label><input id="psd2Limit" type="number" step="0.01" value="30"></div>
+      <div class="row"><label for="psd2MaxCount">Anzahl ohne SCA (N)</label><input id="psd2MaxCount" type="number" step="1" value="5"></div>
+      <div class="row"><label for="psd2CurrentCount">Aktuelle Folge-Zahlungen ohne SCA</label><input id="psd2CurrentCount" type="number" step="1" value="0"></div>
+      <div class="row"><label for="psd2NextAmount">Nächster Betrag €</label><input id="psd2NextAmount" type="number" step="0.01" value="3"></div>
+      <div class="kpi">
+        <div class="box"><div class="label">SCA nötig?</div><div class="value" id="scaOut">–</div></div>
+        <div class="box"><div class="label">Folgezähler danach</div><div class="value" id="nextCountOut">–</div></div>
+      </div>
+      <div class="muted" style="margin-top:6px"><code class="small">SCA nötig, wenn Betrag &gt; Limit <em>oder</em> Zähler ≥ N.</code></div>
+      <div class="btn-row" style="margin-top:8px"><button id="applyPsd2">Zähler aktualisieren</button><button id="resetPsd2">Zurücksetzen</button></div>
+    </section>
+
+    <!-- Circuit Breaker -->
+    <section class="card">
+      <h2>Circuit-Breaker</h2>
+      <div class="grid-2">
+        <div class="row"><label for="cbWindow">Fenstergröße (Requests)</label><input id="cbWindow" type="number" step="1" value="10"></div>
+        <div class="row"><label for="cbThreshold">Fehlerschwelle</label><input id="cbThreshold" type="number" step="1" value="5"></div>
+      </div>
+      <div class="grid-2">
+        <div class="row"><label for="cbRecentFails">Fehler im Fenster</label><input id="cbRecentFails" type="number" step="1" value="2"></div>
+        <div class="row"><label for="cbOpenTimeout">Open Timeout (s)</label><input id="cbOpenTimeout" type="number" step="1" value="30"></div>
+      </div>
+      <div class="row"><label for="cbSinceOpen">Sek. seit Open</label><input id="cbSinceOpen" type="number" step="1" value="0"></div>
+      <div class="kpi">
+        <div class="box"><div class="label">Status</div><div class="value" id="cbStateOut">–</div></div>
+        <div class="box"><div class="label">Fehlerrate</div><div class="value" id="cbErrRateOut">–</div></div>
+      </div>
+      <div class="muted" style="margin-top:6px"><code class="small">Open wenn Fehler ≥ Schwelle. Nach Timeout → Half-Open.</code></div>
+    </section>
+
+    <!-- Tokenomics & Supply Projection -->
+    <section class="card" style="grid-column:1/-1">
+      <h2>Tokenomics & Circulating Supply</h2>
+      <div class="grid-2">
+        <div>
+          <div class="row"><label for="totalSupply">Total Supply (Token)</label><input id="totalSupply" type="number" step="1" value="1000000000"></div>
+          <div class="row"><label for="initialPct">Initial zirkulierend %</label><input id="initialPct" type="number" step="0.1" value="5"></div>
+          <div class="row"><label for="horizon">Horizont (Monate)</label><input id="horizon" type="number" step="1" value="60"></div>
+          <hr style="border:0; border-top:1px solid var(--border); margin:10px 0">
+          <div class="row"><label for="foundersPct">Founders % / Vesting (Monate)</label>
+            <span style="display:grid; grid-template-columns:1fr 1fr; gap:6px">
+              <input id="foundersPct" type="number" step="0.1" value="15">
+              <input id="foundersVest" type="number" step="1" value="48">
+            </span>
+          </div>
+          <div class="row"><label for="investorsPct">Investors % / Vesting (Monate)</label>
+            <span style="display:grid; grid-template-columns:1fr 1fr; gap:6px">
+              <input id="investorsPct" type="number" step="0.1" value="20">
+              <input id="investorsVest" type="number" step="1" value="36">
+            </span>
+          </div>
+          <div class="row"><label for="driversPct">Driver Rewards % / Vesting (Monate)</label>
+            <span style="display:grid; grid-template-columns:1fr 1fr; gap:6px">
+              <input id="driversPct" type="number" step="0.1" value="30">
+              <input id="driversVest" type="number" step="1" value="60">
+            </span>
+          </div>
+          <div class="row"><label for="treasuryPct">Treasury % / Vesting (Monate)</label>
+            <span style="display:grid; grid-template-columns:1fr 1fr; gap:6px">
+              <input id="treasuryPct" type="number" step="0.1" value="30">
+              <input id="treasuryVest" type="number" step="1" value="60">
+            </span>
+          </div>
+          <div id="allocWarn" class="warning" style="display:none">Achtung: Initial% + Anteile müssen ≤ 100% sein.</div>
+        </div>
+        <div>
+          <canvas id="supplyChart" width="800" height="260"></canvas>
+          <div class="kpi">
+            <div class="box"><div class="label">Zirkulierend (Monat <span id="curMonthLabel">0</span>)</div><div class="value" id="circOut">–</div></div>
+            <div class="box"><div class="label">Freigegeben gesamt</div><div class="value" id="releasedOut">–</div></div>
+          </div>
+          <div class="row"><label for="monthSlider">Betrachteter Monat</label><input id="monthSlider" type="range" min="0" max="60" step="1" value="0" oninput="document.getElementById('curMonthLabel').textContent=this.value"></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="footer">
+    <div class="pill">Hinweis: Dieses Widget speichert nichts extern. Alle Berechnungen passieren im Browser.</div>
+  </div>
+
+<script>
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  const euro = (x)=> isFinite(x)? x.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:4}) : '–';
+  const num = (x,d=2)=> isFinite(x)? x.toLocaleString('de-DE',{maximumFractionDigits:d}) : '–';
+  const pct = (x,d=2)=> isFinite(x)? (x*100).toLocaleString('de-DE',{maximumFractionDigits:d})+'%' : '–';
+
+  function now(){
+    const dt = new Date();
+    return dt.toLocaleString('de-DE');
+  }
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function rixCalc(){
+    const twap = parseFloat($("twap").value)||0;
+    const haircut = (parseFloat($("haircut").value)||0)/100;
+    const vwap = parseFloat($("vwap").value)||0;
+    const discounted = twap*(1 - haircut);
+    const rix = Math.min(discounted, vwap);
+    $("discTwapOut").textContent = euro(discounted);
+    $("rixOut").textContent = euro(rix);
+    const dev = vwap>0? (rix - vwap)/vwap : 0;
+    $("rixDevOut").textContent = (dev>=0?'+':'') + (dev*100).toFixed(2).replace('.',',') + '%';
+    $("nowOut").textContent = now();
+    return { twap, haircut, vwap, discounted, rix };
+  }
+
+  function voucherCalc(rix){
+    const fare = parseFloat($("fare").value)||0;
+    const discPct = (parseFloat($("voucherDiscount").value)||0)/100;
+    const maxDisc = parseFloat($("maxDiscount").value)||0;
+    const discountAmt = Math.min(fare*discPct, maxDisc);
+    const eff = Math.max(0, fare - discountAmt);
+    $("effFareOut").textContent = euro(eff);
+    const tokens = rix>0? (eff/rix): 0;
+    $("tokensOut").textContent = num(tokens, 6);
+  }
+
+  function psd2Calc(){
+    const L = parseFloat($("psd2Limit").value)||0;
+    const N = parseInt($("psd2MaxCount").value)||0;
+    const c = parseInt($("psd2CurrentCount").value)||0;
+    const amt = parseFloat($("psd2NextAmount").value)||0;
+    const sca = (amt > L) || (c >= N);
+    $("scaOut").innerHTML = sca ? '<span class="bad">Ja – SCA</span>' : '<span class="ok">Nein</span>';
+    const nextC = sca ? 0 : (c+1);
+    $("nextCountOut").textContent = num(nextC,0);
+    return {sca, nextC};
+  }
+
+  function cbCalc(){
+    const win = parseInt($("cbWindow").value)||0;
+    const thr = parseInt($("cbThreshold").value)||0;
+    const fails = clamp(parseInt($("cbRecentFails").value)||0, 0, Math.max(0,win));
+    $("cbRecentFails").value = fails;
+    const openTimeout = parseInt($("cbOpenTimeout").value)||0;
+    const sinceOpen = parseInt($("cbSinceOpen").value)||0;
+    const errRate = win>0? (fails/win) : 0;
+    let state = 'Closed';
+    let colorClass = 'ok';
+    if (fails >= thr && thr>0){
+      if (sinceOpen >= openTimeout){ state = 'Half-Open'; colorClass = 'warn'; }
+      else { state = 'Open'; colorClass = 'bad'; }
+    }
+    $("cbStateOut").innerHTML = `<span class="${colorClass}">${state}</span>`;
+    $("cbErrRateOut").textContent = pct(errRate,2);
+  }
+
+  // Tokenomics
+  function allocationWarn(totalPct){
+    $("allocWarn").style.display = (totalPct>100.0001) ? 'block' : 'none';
+  }
+
+  function supplyProjection(){
+    const TS = parseFloat($("totalSupply").value)||0;
+    const initPct = parseFloat($("initialPct").value)||0;
+    const foundersPct = parseFloat($("foundersPct").value)||0;
+    const investorsPct = parseFloat($("investorsPct").value)||0;
+    const driversPct = parseFloat($("driversPct").value)||0;
+    const treasuryPct = parseFloat($("treasuryPct").value)||0;
+    const totalPct = initPct + foundersPct + investorsPct + driversPct + treasuryPct;
+    allocationWarn(totalPct);
+    const foundersVest = Math.max(0, parseInt($("foundersVest").value)||0);
+    const investorsVest = Math.max(0, parseInt($("investorsVest").value)||0);
+    const driversVest = Math.max(0, parseInt($("driversVest").value)||0);
+    const treasuryVest = Math.max(0, parseInt($("treasuryVest").value)||0);
+    const H = Math.max(1, parseInt($("horizon").value)||60);
+    $("monthSlider").max = H;
+
+    const initTokens = TS * (initPct/100);
+    const foundersTok = TS * (foundersPct/100);
+    const investorsTok = TS * (investorsPct/100);
+    const driversTok = TS * (driversPct/100);
+    const treasuryTok = TS * (treasuryPct/100);
+
+    const series = [];
+    for(let m=0;m<=H;m++){
+      const vest = (amt, months)=> months<=0? amt : Math.min(amt, amt * (m/months));
+      const released = initTokens + vest(foundersTok, foundersVest) + vest(investorsTok, investorsVest) + vest(driversTok, driversVest) + vest(treasuryTok, treasuryVest);
+      const circ = Math.min(TS, released);
+      series.push({m, circ, released});
+    }
+
+    drawChart($("supplyChart"), series.map(s=>s.circ));
+
+    const sel = clamp(parseInt($("monthSlider").value)||0,0,H); $("monthSlider").value = sel; $("curMonthLabel").textContent = sel;
+    const point = series[sel];
+    $("circOut").textContent = num(point.circ,0);
+    $("releasedOut").textContent = num(point.released,0);
+  }
+
+  function drawChart(canvas, data){
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+    // padding
+    const pL=45, pR=15, pT=10, pB=25;
+    // axes
+    ctx.strokeStyle = '#203052'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pL, pT); ctx.lineTo(pL, H-pB); ctx.lineTo(W-pR, H-pB); ctx.stroke();
+
+    const n = data.length;
+    const maxY = Math.max(...data, 1);
+    const minY = 0;
+    // y ticks
+    ctx.fillStyle = '#7f8aa3'; ctx.font = '12px system-ui';
+    const ticks = 4;
+    for(let i=0;i<=ticks;i++){
+      const yv = minY + (i*(maxY-minY)/ticks);
+      const y = H-pB - ((yv-minY)/(maxY-minY))*(H-pT-pB);
+      ctx.globalAlpha = 0.25; ctx.beginPath(); ctx.moveTo(pL, y); ctx.lineTo(W-pR, y); ctx.stroke(); ctx.globalAlpha = 1;
+      const label = (yv>=1e9)? (yv/1e9).toFixed(1).replace('.',',')+'B' : (yv>=1e6)? (yv/1e6).toFixed(1).replace('.',',')+'M' : yv.toFixed(0);
+      ctx.fillText(label, 6, y+4);
+    }
+
+    // line
+    ctx.strokeStyle = '#4aa3ff'; ctx.lineWidth = 2; ctx.beginPath();
+    data.forEach((v,i)=>{
+      const x = pL + (i/(n-1))*(W-pL-pR);
+      const y = H-pB - ((v-minY)/(maxY-minY))*(H-pT-pB);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  }
+
+  function recalc(){
+    const { rix } = rixCalc();
+    voucherCalc(rix);
+    psd2Calc();
+    cbCalc();
+    supplyProjection();
+  }
+
+  // Event bindings
+  const ids = [
+    'twap','haircut','vwap','fare','voucherDiscount','maxDiscount',
+    'psd2Limit','psd2MaxCount','psd2CurrentCount','psd2NextAmount',
+    'cbWindow','cbThreshold','cbRecentFails','cbOpenTimeout','cbSinceOpen',
+    'totalSupply','initialPct','foundersPct','investorsPct','driversPct','treasuryPct',
+    'foundersVest','investorsVest','driversVest','treasuryVest','horizon','monthSlider'
+  ];
+  ids.forEach(id=> $(id).addEventListener('input', recalc));
+
+  $("applyPsd2").addEventListener('click', ()=>{
+    const r = psd2Calc();
+    $("psd2CurrentCount").value = r.nextC;
+    recalc();
+  });
+  $("resetPsd2").addEventListener('click', ()=>{
+    $("psd2CurrentCount").value = 0; recalc();
+  });
+  $("resetRix").addEventListener('click', ()=>{
+    $("twap").value = 1.00; $("haircut").value=10; $("haircutOut").textContent='10%'; $("vwap").value=0.95; recalc();
+  });
+
+  // Initial draw
+  recalc();
+})();
+</script>
+</body>
+</html>
